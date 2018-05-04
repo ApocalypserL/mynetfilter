@@ -5,6 +5,10 @@
 #include <linux/ip.h>
 #include <linux/inet.h>
 
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Leon Huang");
+MODULE_DESCRIPTION("My hookfn for TCP/IP-DTN");
+
 static struct nf_hook_ops nfho = {
 	.hook = my_hookfn,
 	.pf = PF_INET,
@@ -36,7 +40,7 @@ void nf_unregister_hook(struct nf_hook_ops *reg)
 	synchronize_net();
 }
 
-static int_init dtn_t(void)
+static int __init myhookfn_init(void)
 {
 	if(nf_register_hook(&nfho))
 	{
@@ -46,9 +50,10 @@ static int_init dtn_t(void)
 	return 0;
 }
 
-static void __exit dtn_t(void)
+static void __exit myhookfn_exit(void)
 {
 	nf_unregister_hook(&nfho);
 }
 
-
+module_init(myhookfn_init);
+module_exit(myhookfn_exit);
