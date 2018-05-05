@@ -1,13 +1,41 @@
-#include <stdio.h>
-#include <linux/netfilter.h>
+#include <linux/kernel.h>
 #include <linux/init.h>
+#include <linux/skbuff.h>
 #include <linux/module.h>
 #include <linux/ip.h>
 #include <linux/inet.h>
+#include <linux/netfilter.h>
+#include <linux/netfilter_ipv4.h>
+#include <linux/netdevice.h>
+#include <linux/if_ether.h>
+#include <linux/if_packet.h>
+#include <net/tcp.h>
+#include <net/udp.h>
+#include <net/icmp.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Leon Huang");
 MODULE_DESCRIPTION("My hookfn for TCP/IP-DTN");
+
+static int myhookfn(int hooknum, struct sk_buff *skb, \
+		const struct net_device *in, \
+		const struct net_device *out, \
+		int (*okfn)(struct sk_buff *))
+{
+	const struct iphdr *iph = ip_hdr(skb);	//get ip header
+	printk(<0>"%lu\n", iph->saddr);
+	printk(<0>"%lu\n", iph->daddr);
+	if(iph->protocol = IPPROTO_TCP)
+	{
+		printk(<0>"This is a TCP packet\n");
+	}
+	else if(iph->protocol = IPPROTO_UDP)
+	{
+		printk(<0>"This is a UDP packet\n");
+	}
+	else printk(<0>"Something Wrong\n");
+	return NF_ACCEPT;
+}
 
 static struct nf_hook_ops nfho = {
 	.hook = my_hookfn,
