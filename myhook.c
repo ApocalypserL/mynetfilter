@@ -14,12 +14,9 @@
 #include <linux/netdevice.h>
 #include <linux/if_ether.h>
 #include <linux/if_packet.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <net/tcp.h>
 #include <net/udp.h>
 #include <net/icmp.h>
-#include <arpa/inet.h>
 
 /* My own hook function
  * Analyse the packet passing LOCAL_OUT
@@ -30,18 +27,8 @@ static unsigned int myhookfn(void *priv, \
 		const struct nf_hook_state *state)
 {
 	const struct iphdr *iph = ip_hdr(skb);
-
-	char s_saddr[16];
-	char s_daddr[16];
-	struct in_addr saddr;
-	struct in_addr daddr;
-	saddr.s_addr = htonl(iph->saddr);
-	daddr.s_addr = htonl(iph->daddr);
-	inet_ntop(AF_INET, (void *)&saddr, s_saddr, (socklen_t)sizeof(s_saddr));
-	inet_ntop(AF_INET, (void *)&daddr, s_daddr, (socklen_t)sizeof(s_daddr));
-	printk(KERN_INFO"%s\n", s_saddr);
-	printk(KERN_INFO"%s\n", s_daddr);
-
+	printk(KERN_INFO"%u", iph->saddr);
+	printk(KERN_INFO"%u", iph->daddr);
 	switch(iph->protocol)
 	{
 		case IPPROTO_ICMP:
