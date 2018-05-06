@@ -1,3 +1,6 @@
+/* IMPORTANT WARNING
+ * THIS VERSION WORK ON LINUX KERNEL VERSION
+ * BEFORE 4.13 */
 #include <linux/kernel.h>
 #include <linux/version.h>
 #include <linux/init.h>
@@ -11,26 +14,49 @@
 #include <linux/netdevice.h>
 #include <linux/if_ether.h>
 #include <linux/if_packet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <net/tcp.h>
 #include <net/udp.h>
 #include <net/icmp.h>
+#include <arpa/inet.h>
 
+/* My own hook function
+ * Analyse the packet passing LOCAL_OUT
+ * Get its saddr & daddr & data
+ * What to do then? IDK */
 static unsigned int myhookfn(void *priv, \
 	       	struct sk_buff *skb, \
 		const struct nf_hook_state *state)
 {
-	const struct iphdr *iph = ip_hdr(skb);	//get ip header
-	printk(KERN_INFO"%u", iph->saddr);
-	printk(KERN_INFO"%u", iph->daddr);
-	if(iph->protocol == IPPROTO_TCP)
+	const struct iphdr *iph = ip_hdr(skb);
+
+	char s_saddr[16];
+	char s_daddr[16];
+	struct in_addr saddr;
+	struct in_addr daddr;
+	saddr.s_addr = htonl(iph->saddr);
+	daddr.s_addr = htonl(iph->daddr);
+	inet_ntop(AF_INET, (void *)&saddr, s_saddr, (socklen_t)sizeof(s_saddr));
+	inet_ntop(AF_INET, (void *)&daddr, s_daddr, (socklen_t)sizeof(s_daddr));
+	printk(KERN_INFO"%s\n", s_saddr);
+	printk(KERN_INFO"%s\n", s_daddr);
+
+	switch(iph->protocol)
 	{
-		printk(KERN_INFO"This is a TCP packet\n");
+		case IPPROTO_ICMP:
+			printk(KERN_INFO"This is a ICMP.\n");
+			break;
+		case IPPROTO_TCP:
+			printk(KERN_INFO"This is a TCP.\n");
+			break;
+		case IPPROTO_UDP:
+			printk(KERN_INFO"This is a UDP.\n");
+			break;
+		default:
+			printk(KERN_INFO"IDK what it is.\n");
+			break;
 	}
-	else if(iph->protocol == IPPROTO_UDP)
-	{
-		printk(KERN_INFO"This is a UDP packet\n");
-	}
-	else printk(KERN_INFO"Something Wrong\n");
 	return NF_ACCEPT;
 }
 
