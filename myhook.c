@@ -1,3 +1,7 @@
+/* IMPORTANT WARNING */
+/* Since the structure of sk_buff has been changed after
+ * kernel version 2.6.x, so this module should be
+ * installed in a kernel later than 2.6.x */
 #ifndef __KERNEL__
 #define __KERNEL__
 #endif
@@ -34,6 +38,10 @@ struct packet_info
 {
 	__u32 saddr;
 	__u32 daddr;
+	__u16 sport;
+	__u16 dport;
+	sk_buff_data_t data_h;
+	sk_buff_data_t data_e;
 };
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)
@@ -47,15 +55,46 @@ static unsigned int hack_skb(const struct nf_hook_ops *ops, \
 		const struct net_device *out, \
 		int (*okfn)(struct sk_buff *))
 #endif
-{
-	const struct iphdr *iph = ip_hdr(skb);
+{	
 	struct packet_info info;
-	if(iph->protocol == IPPROTO_TCP)
+	const struct iphdr *iph = ip_hdr(skb);
+
+	if(skb->protocol == IPPROTO_ICMP)
 	{
-		info.saddr = iph->saddr;
-		info.saddr = iph->daddr;
+		return NF_ACCEPT;
 	}
+		
+	info.data_e = skb->tail;
+	info.data_h = skb->transport_header;
+
+	info.saddr = iph->saddr;
+	info.daddr = iph->daddr;
+
+	switch(iph->protocol)
+	{
+		case IPPROTO_TCP:
+			{
+				const struct tcphdr *tcph = tcp_hdr(skb);
+				info.sport = tcph->source;
+				info.dport = tcph->dest;
+				info.data_h += tcp_hdrlen(skb) + tcp_optlen(skb);
+				break;
+			}
+		case IPPROTO_UDP:
+			{
+				const struct udphdr *udph = udp_hdr(skb);
+				info.sport = udph->source;
+				info.dport = udph->dest;
+				info.data_h += sizeof(struct udphdr);
+				break;
+			}
+		default:
+			break;
+	}
+
 	
+	printk(KERN_ALERT"%u\n", info.saddr);
+	printk(KERN_ALERT"%u\n", info.daddr);
 	return NF_ACCEPT;
 }
 
