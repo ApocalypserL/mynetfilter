@@ -69,7 +69,7 @@ static int send_to_user(struct packet_info info)
 	NETLINK_CB(skb).portid = 0;
 	NETLINK_CB(skb).dst_group = 0;
 	
-	//printk(KERN_ALERT"[kernel]sending data:%s\n", (char *)NLMSG_DATA((struct nlmsghdr *)skb->data));
+	//printk(KERN_DEBUG"[kernel]sending data:%s\n", (char *)NLMSG_DATA((struct nlmsghdr *)skb->data));
 	ret = netlink_unicast(nlfd, skb, user_proc.pid, 1);
 	return ret;
 }
@@ -86,7 +86,7 @@ static void recv_from_user(struct sk_buff *skb)
 		if((nlh->nlmsg_len >= sizeof(struct nlmsghdr)) && (skb->len >= nlh->nlmsg_len))
 		{
 			user_proc.pid = nlh->nlmsg_pid;
-			printk(KERN_ALERT"[kernel]netlink confirmed, user_proc_pid:%u\n", user_proc.pid);
+			printk(KERN_DEBUG "[kernel]netlink confirmed, user_proc_pid:%u\n", user_proc.pid);
 		}
 	}
 	
@@ -111,18 +111,18 @@ static unsigned int hack_skb(const struct nf_hook_ops *ops, \
 {
 	int ret = 0;	
 	struct packet_info info;
-	sk_buff_data_t data_h;
-	sk_buff_data_t data_e;
-	__u32 payloadsize = 0;
+	char *data_h;
+	char *data_e;
+	int payloadsize = 0;
 	const struct iphdr *iph = ip_hdr(skb);
 	if(skb->protocol == IPPROTO_ICMP)
 	{
 		return NF_ACCEPT;
 	}
 		
-	printk(KERN_ALERT"Packet hacked!\n");
-	data_e = skb->tail;
-	data_h = skb->transport_header;
+	printk(KERN_DEBUG "Packet hacked!\n");
+	data_e = skb_tail_pointer(skb);
+	data_h = skb_transport_header(skb);
 
 	info.saddr = iph->saddr;
 	info.daddr = iph->daddr;
@@ -134,8 +134,13 @@ static unsigned int hack_skb(const struct nf_hook_ops *ops, \
 				const struct tcphdr *tcph = tcp_hdr(skb);
 				info.sport = tcph->source;
 				info.dport = tcph->dest;
-				data_h += (tcp_hdrlen(skb) + tcp_optlen(skb));
+				data_h = data_h + tcp_hdrlen(skb) + tcp_optlen(skb);
 				payloadsize = data_e - data_h;
+				if(payloadsize < 0)
+				{
+					return NF_ACCEPT;
+				}
+				printk(KERN_DEBUG "protocol:%u, dest:%u, sport:%u, size:%d\n", iph->protocol, info.daddr, ntohs(info.sport), payloadsize);
 				break;
 			}
 		case IPPROTO_UDP:
@@ -145,6 +150,11 @@ static unsigned int hack_skb(const struct nf_hook_ops *ops, \
 				info.dport = udph->dest;
 				data_h += sizeof(struct udphdr);
 				payloadsize = data_e - data_h;
+				if(payloadsize < 0)
+				{
+					return NF_ACCEPT;
+				}
+				printk(KERN_DEBUG "protocol:%u, dest:%u, sport:%u, size:%d\n", iph->protocol, info.daddr, ntohs(info.sport), payloadsize);
 				break;
 			}
 		default:
@@ -154,7 +164,7 @@ static unsigned int hack_skb(const struct nf_hook_ops *ops, \
 	{
 		ret = send_to_user(info);
 	}
-	//printk(KERN_ALERT"%u\n", info.daddr);
+	//printk(KERN_DEBUG"%u\n", info.daddr);
 	return NF_ACCEPT;
 }
 
@@ -175,7 +185,7 @@ static int __init hack_skb_init(void)
 #endif
 	if(!nlfd)
 	{
-		printk(KERN_ALERT"create netlink failed.\n");
+		printk(KERN_DEBUG" create netlink failed.\n");
 		return -1;
 	}
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
@@ -188,7 +198,7 @@ static int __init hack_skb_init(void)
 static void __exit hack_skb_exit(void)
 {
 	sock_release(nlfd->sk_socket);
-	printk(KERN_ALERT"delete netlink.\n");
+	printk(KERN_DEBUG "delete netlink.\n");
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
 	nf_unregister_net_hook(&init_net, &nfho);
 #else

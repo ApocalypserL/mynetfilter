@@ -7,5 +7,5 @@ default:
 	$(MAKE) -C $(KDIR) M=$(PWD) modules
 .PHONY:
 clean:
-	rm -f *.o* *.ko* *.mod.* Module.* modules.*
+	rm -f *.o* *.o.* *.ko* *.ko.* *.mod.* Module.* modules.*
 endif
