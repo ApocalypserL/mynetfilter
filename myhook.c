@@ -46,26 +46,24 @@ struct packet_info
 	__u32 daddr;
 	__u16 sport;
 	__u16 dport;
+	int payloadsize;	
 };
 
 static struct sock *nlfd;
 
-static int send_to_user(struct packet_info info)
+static int send_to_user(struct packet_info info, unsigned char *data_head)
 {
 	int ret;
 	int size;
 	struct sk_buff *skb;
 	struct nlmsghdr *nlh;
-	sk_buff_data_t old_tail;
-
-	size = NLMSG_SPACE(sizeof(struct packet_info));
+	size = NLMSG_SPACE(sizeof(struct packet_info) + info.payloadsize);
 	skb = alloc_skb(size, GFP_ATOMIC);
 
-	nlh = nlmsg_put(skb, 0, 0, 0, NLMSG_SPACE(sizeof(struct packet_info)) - sizeof(struct nlmsghdr), 0);
-	old_tail = skb->tail;
+	nlh = nlmsg_put(skb, 0, 0, 0, NLMSG_SPACE(sizeof(struct packet_info) + info.payloadsize) - sizeof(struct nlmsghdr), 0);
 	memcpy(NLMSG_DATA(nlh), &info, sizeof(struct packet_info));
-	nlh->nlmsg_len = skb->tail - old_tail;
-
+	memcpy(NLMSG_DATA(nlh) + sizeof(struct packet_info), data_head, info.payloadsize);
+	printk(KERN_DEBUG "%x", *old_tail);
 	NETLINK_CB(skb).portid = 0;
 	NETLINK_CB(skb).dst_group = 0;
 	
@@ -111,10 +109,10 @@ static unsigned int hack_skb(const struct nf_hook_ops *ops, \
 {
 	int ret = 0;	
 	struct packet_info info;
-	char *data_h;
-	char *data_e;
-	int payloadsize = 0;
+	unsigned char *data_h;
+	unsigned char *data_e;
 	const struct iphdr *iph = ip_hdr(skb);
+	info.payloadsize = 0;
 	if(skb->protocol == IPPROTO_ICMP)
 	{
 		return NF_ACCEPT;
@@ -135,12 +133,12 @@ static unsigned int hack_skb(const struct nf_hook_ops *ops, \
 				info.sport = tcph->source;
 				info.dport = tcph->dest;
 				data_h = data_h + tcp_hdrlen(skb) + tcp_optlen(skb);
-				payloadsize = data_e - data_h;
-				if(payloadsize < 0)
+				info.payloadsize = data_e - data_h;
+				if(info.payloadsize < 0)
 				{
 					return NF_ACCEPT;
 				}
-				printk(KERN_DEBUG "protocol:%u, dest:%u, sport:%u, size:%d\n", iph->protocol, info.daddr, ntohs(info.sport), payloadsize);
+				printk(KERN_DEBUG "protocol:%u, dest:%u, sport:%u, size:%d\n", iph->protocol, info.daddr, ntohs(info.sport), info.payloadsize);
 				break;
 			}
 		case IPPROTO_UDP:
@@ -149,12 +147,12 @@ static unsigned int hack_skb(const struct nf_hook_ops *ops, \
 				info.sport = udph->source;
 				info.dport = udph->dest;
 				data_h += sizeof(struct udphdr);
-				payloadsize = data_e - data_h;
-				if(payloadsize < 0)
+				info.payloadsize = data_e - data_h;
+				if(info.payloadsize < 0)
 				{
 					return NF_ACCEPT;
 				}
-				printk(KERN_DEBUG "protocol:%u, dest:%u, sport:%u, size:%d\n", iph->protocol, info.daddr, ntohs(info.sport), payloadsize);
+				printk(KERN_DEBUG "protocol:%u, dest:%u, sport:%u, size:%d\n", iph->protocol, info.daddr, ntohs(info.sport), info.payloadsize);
 				break;
 			}
 		default:
@@ -162,7 +160,9 @@ static unsigned int hack_skb(const struct nf_hook_ops *ops, \
 	}
 	if((user_proc.pid) > 0)
 	{
-		ret = send_to_user(info);
+		ret = send_to_user(info, data_h);
+		printk(KERN_ALERT "send ok!\n");
+		//user_proc.pid = 0;
 	}
 	//printk(KERN_DEBUG"%u\n", info.daddr);
 	return NF_ACCEPT;

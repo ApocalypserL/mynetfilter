@@ -7,6 +7,7 @@
 #include  <linux/netlink.h>
 
 #define     NETLINK_MYOWN 31
+#define     MAX_LEN 1400
 
 struct packet_info
 {
@@ -15,11 +16,14 @@ struct packet_info
 	__u32 daddr;
 	__u16 sport;
 	__u16 dport;
+	int payloadsize;
+	unsigned char payload[MAX_LEN];
 };
 
 int main(int argc, char *argv[])
 {
 	int ret;
+	unsigned char *payload;
 
 	char *data = "Contact with kernel, processing.";
 	struct packet_info info;
@@ -68,6 +72,7 @@ int main(int argc, char *argv[])
 		exit(-1);
 	}
 	free(message);
+	printf("link established!\n");
 	/*
 	ret = recvfrom(skfd, &info, sizeof(struct u_packet_info), 0, (struct sockaddr *)&kpeer, &addrlen);
 	if(!ret)
@@ -79,13 +84,17 @@ int main(int argc, char *argv[])
 	*/
 	while(1)
 	{
-		ret = recvfrom(skfd, &info, sizeof(struct packet_info), 0, (struct sockaddr *)&kpeer, &addrlen);
+		ret = recvfrom(skfd, &info, sizeof(struct packet_info) + MAX_LEN, 0, (struct sockaddr *)&kpeer, &addrlen);
 		if(!ret)
 		{
 			perror("receive failed.\n");
 			exit(-1);
 		}
-		printf("message received from kernel:%u\n", info.daddr);
+		printf("recv ok!\n");
+		payload = (unsigned char *)malloc(info.payloadsize);
+		memcpy(payload, info.payload, info.payloadsize);
+		printf("data:%x & %x\n", *(payload), info.payload[0]);
+		free(payload);
 	}
 	close(skfd);
 	return 0;
