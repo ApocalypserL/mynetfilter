@@ -63,11 +63,10 @@ static int send_to_user(struct packet_info info, unsigned char *data_head)
 	nlh = nlmsg_put(skb, 0, 0, 0, NLMSG_SPACE(sizeof(struct packet_info) + info.payloadsize) - sizeof(struct nlmsghdr), 0);
 	memcpy(NLMSG_DATA(nlh), &info, sizeof(struct packet_info));
 	memcpy(NLMSG_DATA(nlh) + sizeof(struct packet_info), data_head, info.payloadsize);
-	printk(KERN_DEBUG "%x", *old_tail);
 	NETLINK_CB(skb).portid = 0;
 	NETLINK_CB(skb).dst_group = 0;
 	
-	//printk(KERN_DEBUG"[kernel]sending data:%s\n", (char *)NLMSG_DATA((struct nlmsghdr *)skb->data));
+	//printk(KERN_DEBUG "[kernel]sending data:%x\n", ntohl(*((unsigned int *)(skb_tail_pointer(skb) - info.payloadsize))));
 	ret = netlink_unicast(nlfd, skb, user_proc.pid, 1);
 	return ret;
 }
@@ -132,13 +131,18 @@ static unsigned int hack_skb(const struct nf_hook_ops *ops, \
 				const struct tcphdr *tcph = tcp_hdr(skb);
 				info.sport = tcph->source;
 				info.dport = tcph->dest;
+				if(ntohs(info.dport) == 1113)
+				{
+					printk(KERN_DEBUG "It's DTN, let it go.");
+					return NF_ACCEPT;
+				}
 				data_h = data_h + tcp_hdrlen(skb) + tcp_optlen(skb);
 				info.payloadsize = data_e - data_h;
 				if(info.payloadsize < 0)
 				{
 					return NF_ACCEPT;
 				}
-				printk(KERN_DEBUG "protocol:%u, dest:%u, sport:%u, size:%d\n", iph->protocol, info.daddr, ntohs(info.sport), info.payloadsize);
+				printk(KERN_DEBUG "protocol:%u, dest:%u, sport:%u, size:%d\n", iph->protocol, info.daddr, ntohs(info.dport), info.payloadsize);
 				break;
 			}
 		case IPPROTO_UDP:
@@ -146,13 +150,22 @@ static unsigned int hack_skb(const struct nf_hook_ops *ops, \
 				const struct udphdr *udph = udp_hdr(skb);
 				info.sport = udph->source;
 				info.dport = udph->dest;
+				if(ntohs(info.dport) == 1113)
+				{
+					data_h += sizeof(struct udphdr);
+					info.payloadsize = data_e - data_h;
+
+					printk(KERN_DEBUG "It's DTN, let it go.");
+					printk(KERN_DEBUG "dest:%u, dport:%u, size:%d\n", info.daddr, ntohs(info.dport), info.payloadsize);
+					return NF_ACCEPT;
+				}
 				data_h += sizeof(struct udphdr);
 				info.payloadsize = data_e - data_h;
 				if(info.payloadsize < 0)
 				{
 					return NF_ACCEPT;
 				}
-				printk(KERN_DEBUG "protocol:%u, dest:%u, sport:%u, size:%d\n", iph->protocol, info.daddr, ntohs(info.sport), info.payloadsize);
+				printk(KERN_DEBUG "protocol:%u, dest:%u, dport:%u, size:%d\n", iph->protocol, info.daddr, ntohs(info.dport), info.payloadsize);
 				break;
 			}
 		default:
@@ -161,7 +174,7 @@ static unsigned int hack_skb(const struct nf_hook_ops *ops, \
 	if((user_proc.pid) > 0)
 	{
 		ret = send_to_user(info, data_h);
-		printk(KERN_ALERT "send ok!\n");
+		printk(KERN_DEBUG "send ok!\n");
 		//user_proc.pid = 0;
 	}
 	//printk(KERN_DEBUG"%u\n", info.daddr);
