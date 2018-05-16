@@ -17,7 +17,7 @@ char *ip_to_eid(const unsigned int ip_addr, char *eid)	//ip_addr has been transf
 		printf("IP address transfer failed.\n");
 		exit(1);
 	}
-
+	printf("%s\n", ip_text);
 	if((fp = fopen("eid_table", "r")) == NULL)
 	{
 		printf("file can't be open.\n");
@@ -51,8 +51,9 @@ int main(int argc, char *argv[])
 {
 	char *eid = (char *)malloc(8);
 	strcpy(eid, "ipn:x.1");
-	unsigned int ip_addr = 3070162666;
-	ip_addr = ntohl(ip_addr);
+	unsigned int ip_addr = 785426624;
+	unsigned short port = 12345;
+	printf("%u, %u\n", ntohs(port), htons(port));
 	ip_to_eid(ip_addr, eid);
 	printf("%s\n", eid);
 	free(eid);
