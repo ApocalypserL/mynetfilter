@@ -1,0 +1,155 @@
+## Run the following command to start ION node:
+##	% ionstart -I "host2.rc"
+
+## begin ionadmin 
+# ionrc configuration file for host2 in a 2node ltp test.
+#	This uses ltp from 2 to 1.
+
+# Initialization command (command 1). 
+#	Set this node to be node 2 (as in ipn:2).
+#	Use default sdr configuration (empty configuration file name '').
+1 2 ''
+
+# start ion node
+s
+
+# Add a contact.
+# 	It will start at +1 seconds from now, ending +3600 seconds from now.
+#	It will connect node 2 to itself.
+#	It will transmit 100000 bytes/second.
+a contact +1 +3600 1 1 100000
+
+# Add more contacts.
+#	The network goes 1 to 2, 2 to 1 and 2 to itself.
+#	Note that contacts are unidirectional, so order matters.
+a contact +1 +3600 1 2 100000
+a contact +1 +3600 2 1 100000
+a contact +1 +3600 2 2 100000
+
+# Add a range. This is the physical distance between nodes.
+#	It will start at +1 seconds from now, ending +3600 seconds from now.
+#	It will connect node 1 to itself.
+#	Data on the link is expected to take 1 second to reach the other
+#	end (One Way Light Time).
+a range +1 +3600 1 1 1
+
+# Add more ranges.
+#	We will assume every range is one second.
+#	Note that ranges cover both directions, so you only need define
+#	one range for any combination of nodes.
+a range +1 +3600 1 2 1
+a range +1 +3600 2 2 1
+
+# set this node to consume and produce a mean of 1000000 bytes/second.
+m production 1000000
+m consumption 1000000
+## end ionadmin 
+
+## begin ionsecadmin
+1
+## end ionsecadmin
+
+## begin ltpadmin 
+# ltprc configuration file for host2 in a 2node ltp test.
+
+# Initialization command (command 1). 
+# Establishes the LTP retransmission window. 
+# (Prohibiting LTP from seizing all available storage).
+#	A maximum of 32 sessions.  A session is assumed to be around one
+#	second of transmission.  This value should be estimated at the sum
+#	of maximum round-trip times (in seconds) for all "spans."
+#	Suggest throwing 20% higher number of sessions to account for extra-
+#	long sessions which contain an actual retransmission.
+#	Set a block size limit of 131072 bytes.  The block size is around
+#	the amount of data expected to be sent in a session.  Determine
+#	this with the maximum amount of data (in bytes) transferred in one
+#	second on your fastest available link.
+1 32 131072
+
+# Add a span. (to host1) 
+#	Identify the span as engine number 1.
+#	Use the command 'udplso 192.168.208.36:12345' to implement the link
+#	itself.  In this case, we use udp to connect to host1 using the
+#	port 12345
+a span 1 128 1024 128 1024 1024 1024 1 'udplso 192.168.208.36:12345'
+# (to yourself)
+a span 2 128 1024 128 1024 1024 1024 1 'udplso 192.168.208.46:12345'
+
+# Start command.
+#	This command actually runs the link service output commands
+#	(defined above, in the "a span" commands).
+#	Also starts the link service INPUT task 'udplsi 192.168.208.46:12345' to
+#	listen locally on UDP port 12345 for incoming LTP traffic.
+s 'udplsi 192.168.208.46:12345'
+## end ltpadmin
+
+## begin bpadmin 
+# bprc configuration file for host2 in a 2node ltp test.
+
+# Initialization command (command 1).
+#	Use ipn:2.0 as the custodian endpoint of this node.
+#	That is, scheme IPN with element_number 2 and service number 0
+#	(ipn requires custodian service is zero).
+#	Note that this EID must be understood by the node itself, so be sure
+#	to add the scheme below.
+1
+
+# Add an EID scheme.
+#	The scheme's name is ipn.
+#	The scheme's number is 2.  Note that this number is defined for
+#	Compressed Bundle Header Encoding (CBHE) schemes ONLY.  All other
+#	schemes (dtn for example) should use number -1.
+#	This scheme's forwarding engine is handled by the program 'ipnfw.'
+#	This scheme's administration program (acting as the custodian
+#	daemon) is 'ipnadminep.'
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+# Add endpoints.
+#	Establish endpoints ipn:2.0 ipn:2.1 and ipn:2.2 on the local node.
+#	ipn:1.0 is expected for custodian traffic.  The rest are usually
+#	used for specific applications (such as bpsink).
+#	The behavior for receiving a bundle when there is no application
+#	currently accepting bundles, is to queue them 'q', as opposed to
+#	immediately and silently discarding them (use 'x' instead of 'q' to
+#	discard).
+a endpoint ipn:2.1 x
+a endpoint ipn:2.2 x
+
+# Add a protocol. 
+#	Add the protocol named ltp.
+#	Estimate transmission capacity assuming 1400 bytes of each frame (in
+#	this case, udp on ethernet) for payload, and 100 bytes for overhead.
+a protocol ltp 1400 100
+
+# Add an induct. (listen)
+#	Add an induct to accept bundles using the ltp protocol.
+#	The duct's name is 2 (this is for future changing/deletion of the
+#	induct). 
+#	The induct itself is implemented by the 'ltpcli' command.
+a induct ltp 2 ltpcli
+
+# Add an outduct. (send to host1)
+#	Add an outduct to send bundles using the ltp protocol.
+#	The duct's name is 1 (this is for future changing/deletion of the
+#	outduct). The name should correpsond to a span (in your ltprc).
+#	The outduct itself is implemented by the 'ltpclo' command.
+a outduct ltp 1 ltpclo
+# (to yourself)
+a outduct ltp 2 ltpclo
+
+# Start the daemons
+s
+## end bpadmin 
+
+## begin ipnadmin 
+# ipnrc configuration file for host2 in a 2node ltp test. 
+#	Essentially, this is the IPN scheme's routing table.
+
+# Add a egress plans.
+#	Bundles for element 1 can be transmitted directly to host1 using
+#	ltp outduct identified as '1.' See bprc file for available outducts
+#	and/or protocols.
+a plan 1 ltp/1
+# (to yourself)
+a plan 2 ltp/2
+## end ipnadmin

@@ -131,14 +131,19 @@ static unsigned int hack_skb(const struct nf_hook_ops *ops, \
 				const struct tcphdr *tcph = tcp_hdr(skb);
 				info.sport = tcph->source;
 				info.dport = tcph->dest;
+				if(ntohs(info.sport) == 5353)
+				{
+					printk(KERN_DEBUG "It's MSDN.\n");
+					return NF_ACCEPT;
+				}
 				if(ntohs(info.dport) == 1113)
 				{
-					printk(KERN_DEBUG "It's DTN, let it go.");
+					printk(KERN_DEBUG "It's DTN, let it go.\n");
 					return NF_ACCEPT;
 				}
 				data_h = data_h + tcp_hdrlen(skb) + tcp_optlen(skb);
 				info.payloadsize = data_e - data_h;
-				if(info.payloadsize < 0)
+				if(info.payloadsize <= 0)
 				{
 					return NF_ACCEPT;
 				}
@@ -150,6 +155,11 @@ static unsigned int hack_skb(const struct nf_hook_ops *ops, \
 				const struct udphdr *udph = udp_hdr(skb);
 				info.sport = udph->source;
 				info.dport = udph->dest;
+				if(ntohs(info.sport) == 5353)
+				{
+					printk(KERN_DEBUG "It's MSDN.\n");
+					return NF_ACCEPT;
+				}
 				if(ntohs(info.dport) == 1113)
 				{
 					data_h += sizeof(struct udphdr);
@@ -161,7 +171,7 @@ static unsigned int hack_skb(const struct nf_hook_ops *ops, \
 				}
 				data_h += sizeof(struct udphdr);
 				info.payloadsize = data_e - data_h;
-				if(info.payloadsize < 0)
+				if(info.payloadsize <= 0)
 				{
 					return NF_ACCEPT;
 				}

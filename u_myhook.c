@@ -1,3 +1,44 @@
+/* 	The daemon in userspace, connected to the 		*
+ *  	counterpart in kernel module.				*
+ * 	Author: Leon Huang, Nanjing University			*
+ *
+ * 			IMPORTANT WARNING			*
+ * 	This application can work but it remains 		*
+ * 	SERIOUSLY UNDONE and it's JUST FOR TEST.		*/
+
+/* 	Some parts of these source codes are modified from 	*
+ * 	source codes provided by JPL, CIT. 			*
+ * 	Here is the original license.				*/
+/*
+Copyright (c) 2002-2011, California Institute of Technology.
+All rights reserved.  Based on Government Sponsored Research under contracts
+NAS7-1407 and/or NAS7-03001.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+    1. Redistributions of source code must retain the above copyright notice,
+       this list of conditions and the following disclaimer.
+    2. Redistributions in binary form must reproduce the above copyright notice,
+       this list of conditions and the following disclaimer in the documentation
+       and/or other materials provided with the distribution.
+    3. Neither the name of the California Institute of Technology (Caltech),
+       its operating division the Jet Propulsion Laboratory (JPL), the National
+       Aeronautics and Space Administration (NASA), nor the names of its
+       contributors may be used to endorse or promote products derived from
+       this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE CALIFORNIA INSTITUTE OF TECHNOLOGY BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
 #include  <stdio.h>
 #include  <stdlib.h>
 #include  <unistd.h>
@@ -109,7 +150,7 @@ char *ip_to_eid(const unsigned int ip_addr, char *eid)	//ip_addr has been transf
 		exit(1);
 	}
 
-	if((fp = fopen("/home/leon/mynetfilter/mybp/eid_table", "r")) == NULL)
+	if((fp = fopen("/home/leon/mynetfilter/eid_table", "r")) == NULL)
 	{
 		printf("file can't be open.\n");
 		exit(1);
@@ -206,7 +247,6 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	printf("attach ok!\n");
-	//here will be an NAT
 	strcpy(args.ownEid, "ipn:1.1");
 	if(bp_open(args.ownEid, &sap) < 0)
 	{
@@ -215,7 +255,7 @@ int main(int argc, char *argv[])
 	}
 	printf("open ok!\n");
 	sdr = bp_get_sdr();
-	//signal(SIGINT, handleQuit);
+	signal(SIGINT, handleQuit);
 	/* Open BP service */
 	/* Transport! */
 	while(running)
@@ -227,7 +267,6 @@ int main(int argc, char *argv[])
 			exit(-1);
 		}
 		printf("recv:%x\n", *info.payload);
-		//nat here
 		strcpy(args.destEid, "ipn:x.1");
 		args.destEid = ip_to_eid(info.daddr, args.destEid);
 		args.payloadsize = info.payloadsize;
