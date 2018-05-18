@@ -232,5 +232,5 @@ static void __exit hack_skb_exit(void)
 module_init(hack_skb_init);
 module_exit(hack_skb_exit);
 
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("BSD");
 MODULE_AUTHOR("Leon Huang");
