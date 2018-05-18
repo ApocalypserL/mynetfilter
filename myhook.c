@@ -1,7 +1,16 @@
-/* IMPORTANT WARNING */
+/*	The kernel module based on netfilter and netlink	*
+ *	to hack TCP/IP packages and transport them		*
+ *	to userspace daemon.					*
+ *	Author: Leon Huang, Nanjing University			*/
+
+/* 			IMPORTANT WARNING			*
+ * 	This application can work but it remains 		*
+ * 	SERIOUSLY UNDONE and it's JUST FOR TEST.		*/
+
 /* Since the structure of sk_buff has been changed after
  * kernel version 2.6.x, so this module should be
  * installed in a kernel later than 2.6.x */
+
 #ifndef __KERNEL__
 #define __KERNEL__
 #endif
