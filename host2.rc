@@ -68,19 +68,19 @@ m consumption 1000000
 
 # Add a span. (to host1) 
 #	Identify the span as engine number 1.
-#	Use the command 'udplso 192.168.208.36:12345' to implement the link
+#	Use the command 'udplso 192.168.208.124:1113' to implement the link
 #	itself.  In this case, we use udp to connect to host1 using the
-#	port 12345
-a span 1 128 1024 128 1024 1024 1024 1 'udplso 192.168.208.36:12345'
+#	port 1113
+a span 1 128 1024 128 1024 1024 1024 1 'udplso 192.168.208.124:1113'
 # (to yourself)
-a span 2 128 1024 128 1024 1024 1024 1 'udplso 192.168.208.46:12345'
+a span 2 128 1024 128 1024 1024 1024 1 'udplso 192.168.208.46:1113'
 
 # Start command.
 #	This command actually runs the link service output commands
 #	(defined above, in the "a span" commands).
-#	Also starts the link service INPUT task 'udplsi 192.168.208.46:12345' to
-#	listen locally on UDP port 12345 for incoming LTP traffic.
-s 'udplsi 192.168.208.46:12345'
+#	Also starts the link service INPUT task 'udplsi 192.168.208.46:1113' to
+#	listen locally on UDP port 1113 for incoming LTP traffic.
+s 'udplsi 192.168.208.46:1113'
 ## end ltpadmin
 
 ## begin bpadmin 

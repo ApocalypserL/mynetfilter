@@ -80,11 +80,11 @@ m consumption 1000000
 #	limit.
 #	Limit the aggregation size to 1024 bytes, and set a time limit on
 #	aggregation to 1 second.	
-#	Use the command 'udplso 192.168.208.178:1113' to implement the link
+#	Use the command 'udplso 192.168.208.124:1113' to implement the link
 #	itself.  In this case, we use udp to connect to the local machine
 #	(loopback) using port 1113 The single quote is
 #	important, don't use double quotes.
-a span 1 128 1024 128 1024 1024 1024 1 'udplso 192.168.208.178:1113'
+a span 1 128 1024 128 1024 1024 1024 1 'udplso 192.168.208.124:1113'
 
 # Add another span. (to host2) 
 #	Identify the span as engine number 2.
@@ -96,9 +96,9 @@ a span 2 128 1024 128 1024 1024 1024 1 'udplso 192.168.208.46:1113'
 # Start command.
 #	This command actually runs the link service output commands
 #	(defined above, in the "a span" commands).
-#	Also starts the link service INPUT task 'udplsi 192.168.208.178:1113' to
+#	Also starts the link service INPUT task 'udplsi 192.168.208.124:1113' to
 #	listen locally on UDP port 1113 for incoming LTP traffic.
-s 'udplsi 192.168.208.178:1113'
+s 'udplsi 192.168.208.124:1113'
 ## end ltpadmin
 
 ## begin bpadmin 
